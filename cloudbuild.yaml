@@ -13,7 +13,7 @@ steps:
       - 'set'
       - 'image'
       - 'deployment/my-node-app'
-      - 'my-node-app=europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
+      - 'my-node-container=europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=europe-west4-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=my-cluster'
