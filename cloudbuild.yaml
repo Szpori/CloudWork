@@ -5,16 +5,15 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest']
 
-  - name: 'gcr.io/cloud-builders/kubectl'
+  # Step to get Kubernetes credentials using the gcloud builder
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
     args:
-      - "gcloud"
-      - "container"
-      - "clusters"
-      - "get-credentials"
-      - "--project=driven-stage-457910-k8"
-      - "--zone=europe-west4-a"
-      - "my-cluster"
+      - '-c'
+      - |
+        gcloud container clusters get-credentials my-cluster --zone europe-west4-a --project driven-stage-457910-k8
 
+  # Step to set the image using kubectl
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       - 'set'
@@ -22,6 +21,7 @@ steps:
       - 'deployment/my-node-app'
       - 'my-node-container=europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
 
+  # Step to trigger a rollout restart
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       - 'rollout'
