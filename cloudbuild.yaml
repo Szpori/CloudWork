@@ -6,3 +6,5 @@ steps:
 
 images:
   - 'europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
+
+logsBucket: gs://driven-stage-457910-k8-logs/
