@@ -15,6 +15,18 @@ steps:
         mkdir -p /workspace/kubeconfig
         gcloud container clusters get-credentials my-cluster --zone europe-west4-a --project driven-stage-457910-k8
         cp ~/.kube/config /workspace/kubeconfig/config
+        echo "Kubeconfig copied to /workspace/kubeconfig/config"
+
+  # Verify kubeconfig
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    env:
+      - KUBECONFIG=/workspace/kubeconfig/config
+    args:
+      - '-c'
+      - |
+        echo "Verifying kubeconfig..."
+        kubectl config get-contexts
 
   # Set the image using kubectl
   - name: 'gcr.io/cloud-builders/kubectl'
