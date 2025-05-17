@@ -28,21 +28,23 @@ steps:
         echo "Verifying kubeconfig..."
         kubectl config get-contexts
 
-  # Set the image using kubectl
+  # Set the image using kubectl with explicit context
   - name: 'gcr.io/cloud-builders/kubectl'
     env:
       - KUBECONFIG=/workspace/kubeconfig/config
     args:
+      - '--context=gke_driven-stage-457910-k8_europe-west4-a_my-cluster'
       - 'set'
       - 'image'
       - 'deployment/my-node-app'
       - 'my-node-container=europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
 
-  # Trigger a rollout restart
+  # Trigger a rollout restart with explicit context
   - name: 'gcr.io/cloud-builders/kubectl'
     env:
       - KUBECONFIG=/workspace/kubeconfig/config
     args:
+      - '--context=gke_driven-stage-457910-k8_europe-west4-a_my-cluster'
       - 'rollout'
       - 'restart'
       - 'deployment/my-node-app'
