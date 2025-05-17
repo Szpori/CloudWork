@@ -20,31 +20,26 @@ steps:
   # Verify kubeconfig
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
-    env:
-      - KUBECONFIG=/workspace/kubeconfig/config
     args:
       - '-c'
       - |
         echo "Verifying kubeconfig..."
-        kubectl config get-contexts
+        kubectl config view --kubeconfig=/workspace/kubeconfig/config
+        kubectl config get-contexts --kubeconfig=/workspace/kubeconfig/config
 
-  # Set the image using kubectl with explicit context
+  # Set the image using kubectl with explicit kubeconfig path
   - name: 'gcr.io/cloud-builders/kubectl'
-    env:
-      - KUBECONFIG=/workspace/kubeconfig/config
     args:
-      - '--context=gke_driven-stage-457910-k8_europe-west4-a_my-cluster'
+      - '--kubeconfig=/workspace/kubeconfig/config'
       - 'set'
       - 'image'
       - 'deployment/my-node-app'
       - 'my-node-container=europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
 
-  # Trigger a rollout restart with explicit context
+  # Trigger a rollout restart with explicit kubeconfig path
   - name: 'gcr.io/cloud-builders/kubectl'
-    env:
-      - KUBECONFIG=/workspace/kubeconfig/config
     args:
-      - '--context=gke_driven-stage-457910-k8_europe-west4-a_my-cluster'
+      - '--kubeconfig=/workspace/kubeconfig/config'
       - 'rollout'
       - 'restart'
       - 'deployment/my-node-app'
