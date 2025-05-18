@@ -14,7 +14,7 @@ spec:
         app: my-node-app
     spec:
       containers:
-        - name: my-node-container
-          image: "${_IMAGE_NAME}:${_IMAGE_TAG}"
+        - name: my-node-app
+          image: europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-repo/my-node-app:latest
           ports:
             - containerPort: 3000
