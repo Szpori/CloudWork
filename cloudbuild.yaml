@@ -43,13 +43,13 @@ steps:
 
 substitutions:
   _REGION: europe-west4-a
-  _IMAGE_NAME: europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified
+  _IMAGE_NAME: europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-app
   _IMAGE_TAG: latest
   _DEPLOY_TARGET: "k8s"  # Options: 'k8s', 'cloudrun', etc.
   _K8S_CLUSTER: "my-cluster"
   _K8S_NAMESPACE: "default"
 
-timeout: '600s' # 10 minutes
+timeout: '240s' # 4 minutes
 
 options:
   logging: CLOUD_LOGGING_ONLY
