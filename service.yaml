@@ -2,12 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: my-node-app-service
-  namespace: default
+  labels:
+    app: my-node-app
 spec:
+  type: LoadBalancer
+  loadBalancerIP: 34.91.92.62
   selector:
     app: my-node-app
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 3000
-  type: ClusterIP
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
