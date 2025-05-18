@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: my-node-app
-  namespace: default
 spec:
   replicas: 1
   selector:
@@ -17,4 +16,30 @@ spec:
         - name: my-node-app
           image: europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-app:latest
           ports:
-            - containerPort: 3000
+            - containerPort: 8080
+          env:
+            - name: DB_USER
+              value: "postgres"  # Adjust as needed
+            - name: DB_PASSWORD
+              value: "myrootpassword"  # Adjust as needed
+            - name: DB_NAME
+              value: "my-database"
+            - name: DB_HOST
+              value: "127.0.0.1"
+            - name: DB_PORT
+              value: "5432"
+
+        - name: cloud-sql-proxy
+          image: gcr.io/cloudsql-docker/gce-proxy:1.33.0
+          command: ["/cloud_sql_proxy",
+                    "-instances=driven-stage-457910-k8:europe-west4:my-sql-instance=tcp:5432",
+                    "-credential_file=/secrets/cloudsql/credentials.json"]
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials

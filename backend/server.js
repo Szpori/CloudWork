@@ -2,12 +2,23 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg');
 
 const PORT = process.env.PORT || 8080;
 
-// In-memory data store
-let quotes = [];
-let currentId = 1;
+// PostgreSQL connection
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
 
 // Serve static frontend files
 const serveFile = (filePath, contentType, res) => {
@@ -39,60 +50,42 @@ const server = http.createServer(async (req, res) => {
       serveFile(path.join(__dirname, '../frontend/index.html'), 'text/html', res);
       return;
     }
+
     if (req.method === 'GET' && pathname.startsWith('/app.js')) {
       serveFile(path.join(__dirname, '../frontend/app.js'), 'application/javascript', res);
       return;
     }
+
     if (req.method === 'GET' && pathname.startsWith('/styles.css')) {
       serveFile(path.join(__dirname, '../frontend/styles.css'), 'text/css', res);
       return;
     }
 
-    // GET /quotes - Get all quotes
+    // GET /quotes - Get all quotes from DB
     if (req.method === 'GET' && pathname === '/quotes') {
-      res.end(JSON.stringify(quotes));
+      try {
+        const result = await pool.query('SELECT * FROM quotes');
+        res.end(JSON.stringify(result.rows));
+      } catch (err) {
+        console.error(err);
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: "Error fetching quotes" }));
+      }
     }
 
     // POST /quotes - Add a new quote
     else if (req.method === 'POST' && pathname === '/quotes') {
       try {
         const { quote, author, year, category } = JSON.parse(body);
-        if (!quote || !author) {
-          res.writeHead(400);
-          res.end(JSON.stringify({ error: "Quote and author are required" }));
-          return;
-        }
-        const newQuote = { id: currentId++, quote, author, year: year || null, category: category || null };
-        quotes.push(newQuote);
-        res.end(JSON.stringify(newQuote));
+        const result = await pool.query(
+          'INSERT INTO quotes (quote, author, year, category) VALUES ($1, $2, $3, $4) RETURNING *',
+          [quote, author, year || null, category || null]
+        );
+        res.end(JSON.stringify(result.rows[0]));
       } catch (err) {
+        console.error(err);
         res.writeHead(500);
-        res.end(JSON.stringify({ error: err.message }));
-      }
-    }
-
-    // GET /quotes/:id - Get a specific quote
-    else if (req.method === 'GET' && pathname.startsWith('/quotes/')) {
-      const id = parseInt(pathname.split('/')[2], 10);
-      const quote = quotes.find(q => q.id === id);
-      if (!quote) {
-        res.writeHead(404);
-        res.end(JSON.stringify({ error: "Quote not found" }));
-      } else {
-        res.end(JSON.stringify(quote));
-      }
-    }
-
-    // DELETE /quotes/:id - Delete a specific quote
-    else if (req.method === 'DELETE' && pathname.startsWith('/quotes/')) {
-      const id = parseInt(pathname.split('/')[2], 10);
-      const index = quotes.findIndex(q => q.id === id);
-      if (index === -1) {
-        res.writeHead(404);
-        res.end(JSON.stringify({ error: "Quote not found" }));
-      } else {
-        quotes.splice(index, 1);
-        res.end(JSON.stringify({ message: `Quote ${id} deleted` }));
+        res.end(JSON.stringify({ error: "Error adding quote" }));
       }
     }
 
