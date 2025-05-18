@@ -1,50 +1,52 @@
 steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest', '.']
-    
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest']
-
-  # Get credentials and copy kubeconfig to workspace
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'get-credentials'
-    entrypoint: 'bash'
+  # Step 1: Build Docker image
+  - id: build-docker-image
+    name: 'gcr.io/cloud-builders/docker'
     args:
-      - '-c'
+      - 'build'
+      - '-t'
+      - '${_IMAGE_NAME}:${_IMAGE_TAG}'
+      - '.'
+
+  # Step 2: Push Docker image to Artifact Registry
+  - id: push-docker-image
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_IMAGE_NAME}:${_IMAGE_TAG}'
+
+  # Step 3: Conditional deploy to Kubernetes
+  - id: deploy-kubernetes
+    name: "google/cloud-sdk:latest" # Includes both gcloud and kubectl
+    entrypoint: "bash"
+    args:
+      - "-c"
       - |
-        mkdir -p /workspace/kubeconfig
-        gcloud container clusters get-credentials my-cluster --zone europe-west4-a --project driven-stage-457910-k8
-        cp ~/.kube/config /workspace/kubeconfig/config
-        echo "Kubeconfig copied to /workspace/kubeconfig/config"
+        if [ "$_DEPLOY_TARGET" == "k8s" ]; then
+          echo "Deploying to Kubernetes..."
+        
+          # Configure access to GKE cluster
+          gcloud container clusters get-credentials ${_K8S_CLUSTER} --region ${_REGION} --project ${PROJECT_ID}
+          
+          # Verify cluster context
+          kubectl config get-contexts
 
-  # Verify kubeconfig
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Verifying kubeconfig..."
-        kubectl config view --kubeconfig=/workspace/kubeconfig/config
-        kubectl config get-contexts --kubeconfig=/workspace/kubeconfig/config
+          # Apply Kubernetes manifests
+          cd kubernetes || (echo "kubernetes folder not found!" && exit 1)
+          ./k8s-deploy.sh ${_K8S_NAMESPACE} || (echo "Deployment script failed!" && exit 1)
+        else
+          echo "Deployment target is not Kubernetes. Skipping Kubernetes deployment."
+        fi
 
-  # Set the image using kubectl with explicit kubeconfig path
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-      - '--kubeconfig=/workspace/kubeconfig/config'
-      - 'set'
-      - 'image'
-      - 'deployment/my-node-app'
-      - 'my-node-container=europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
+substitutions:
+  _REGION: europe-west4
+  _IMAGE_NAME: europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified
+  _IMAGE_TAG: latest
+  _DEPLOY_TARGET: "k8s"  # Options: 'k8s', 'cloudrun', etc.
+  _K8S_CLUSTER: "my-cluster"
+  _K8S_NAMESPACE: "default"
 
-  # Trigger a rollout restart with explicit kubeconfig path
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-      - '--kubeconfig=/workspace/kubeconfig/config'
-      - 'rollout'
-      - 'restart'
-      - 'deployment/my-node-app'
+timeout: '600s' # 10 minutes
 
-images:
-  - 'europe-west4-docker.pkg.dev/driven-stage-457910-k8/my-docker-repo/my-node-server-simplified:latest'
-
-logsBucket: gs://driven-stage-457910-k8-logs/
+options:
+  logging: CLOUD_LOGGING_ONLY
