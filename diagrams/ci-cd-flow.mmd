@@ -1,0 +1,9 @@
+flowchart TD
+    A[Commit pushed to GitHub repo] --> C[Cloud Build Trigger]
+    C --> D1[Build Docker Image]
+    D1 --> D2[Push Image to Artifact Registry]
+    D2 --> E[Deploy to Kubernetes GKE]
+    E --> F[Kubernetes Deployment]
+    F --> G[Service - Load Balancer]
+    G --> H[External IP / DNS]
+    H --> I[Finish CI-CD]
